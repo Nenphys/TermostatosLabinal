@@ -1,4 +1,7 @@
-// Providerconf3.java  del proyecto Providerconf6p2:  Termostato Virtual con Ethernet, para Labinal P2 E4 //
+/* Providerconf3.java  del proyecto Providerconf6p2:
+*  Termostato Virtual con Ethernet, para Labinal P2 E4
+*  Solo se lee una vez la base de datos 01/10/2013
+* */
 
 package nebula.link.android;
 
@@ -8,13 +11,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
-
 import android.app.Activity;
-import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -28,8 +28,8 @@ public class Providerconf3 extends Activity {
 
 	TextView RxESC;
 	char toca = 0;
-	
-   
+    int a =0;
+
 
 	/* Se llama PuertoD1 para hacer referencia a la nomenclatura del Pico-SAM */
 	SerialPort				PuertoD1;
@@ -38,27 +38,66 @@ public class Providerconf3 extends Activity {
 	InputStream				LeeNivelSuperior;
 	ReadThreadNivelInferior	RecibeESC;
 	ReadThreadNivelSuperior	RecibeServer;
-	
-	/* Prueba Modbus con parametros fijos */
-	/** Comando para traer los primeros 8 registros*/
-	//byte[] toSend 		= {0x16,0x03,0x00,0x00,0x00,0x08};
-	/** comando lectura (3) incluye desde controles hasta analogicas*/
-	//byte[] toSend 		= {0x16,0x03,0x00,0x02,0x00,0x10};
-	
-	/** control on/off de reles comando escritura (6) */
-	
-	//byte[] toSend 		= {0x16,0x06,0x00,0x02,0x00,(byte)0x80};
-	
-	byte[] toSendconCRC = new byte[256];
-	
 
-/* ================================================================================================== */
+	byte[] toSendconCRC = new byte[256];
+    int TipoDispositivo = 0;
+    int idpuerto= 0;
+    int idcmdexploracion = 0;
+    String CMDExploracion = "";
+    int VelTimer = 0;
+    String Ip = "";
+
+    String Direccion ="";
+
+    /* ================================================================================================== */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        
-        
+
+        /**Creacion de variables para leer solamente al inicio del programa la base de datos**/
+        idpuerto = RecuperaID(Uri.parse("content://com.nebula.labinal/puerto"));
+        idcmdexploracion = RecuperaID(Uri.parse("content://com.nebula.labinal/cmdexplora"));
+
+
+        // checamos por la configuracion de que es si es un 80 es un veris y si es un 81 seria un termo
+        Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
+        Cursor c = getContentResolver().query(Campos,null,null,null,null);
+        c.moveToFirst();
+        TipoDispositivo =(c.getInt(c.getColumnIndex("idmensaje39")));
+        Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
+        c.close();
+
+        /*Comando exploracion de base de datos*/
+        CMDExploracion = ConsultaContentProviderExploracion("cmdexp");
+
+        /** Velocidad de timer **/
+        Uri allTitles = Uri
+                .parse("content://com.nebula.labinal/timer/1");
+        Cursor c1 = getContentResolver()
+                .query(allTitles, null, null, null, null);
+        if(c1.getCount() == 0){
+            VelTimer = 0;
+        }else{
+            c1.moveToFirst();
+            VelTimer = c1.getInt(c1.getColumnIndex("veltimer"));
+            c1.close();
+        }
+
+        /** IP de BD**/
+        Uri allTitlesIp = Uri
+                .parse("content://com.nebula.labinal/ip/1");
+        Cursor c2 = getContentResolver()
+                .query(allTitlesIp, null, null, null, null);
+        if(c2.getCount() == 0){
+            Ip= "No hay nada en la tabla";
+        }else{
+            c2.moveToFirst();
+            Ip = c2.getString(c2.getColumnIndex("ip")).toString();
+            c2.close();
+        }
+
+
         RxESC = (TextView) findViewById(R.id.RxESC);
 
        
@@ -69,8 +108,8 @@ public class Providerconf3 extends Activity {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		
-       
+
+
         EscribeNivelInferior = PuertoD1.getOutputStream();
 		try {
 			EscribeNivelInferior.flush();
@@ -86,9 +125,6 @@ public class Providerconf3 extends Activity {
 			public void run() {
 				
 				if (!ComandoAEnviarANivelInferior.equals("")){
-					int idpuerto = RecuperaID(Uri.parse("content://com.nebula.labinal/puerto"));
-					int idcmdexploracion = RecuperaID(Uri.parse("content://com.nebula.labinal/cmdexplora"));
-				
 					if(idpuerto!=0 && idcmdexploracion !=0){
 						EnviaComandosESC();
 						try {
@@ -116,6 +152,7 @@ public class Providerconf3 extends Activity {
 			@Override
 			public void run() {
 				if (!ComandoNivelSuperior.equals("")){
+                    //Primer parametro es 10, cambio para funcionamiento correcto del encabezado http
 					if (ComandoNivelSuperior.regionMatches(10, "39", 0, 2)){
 						if (ContadorEnvia39 >= ConsultaContentProviderSegundosEnvio39()){
 							String ip = ConsultaContentProviderIP();
@@ -128,7 +165,7 @@ public class Providerconf3 extends Activity {
 								ContadorEnvia39 =1;
 								ComandoNivelSuperior = "";
 							}
-							catch (Exception e) {	
+							catch (Exception e) {
 								urlConnection.disconnect();
 							}
 						}else {
@@ -200,25 +237,7 @@ public class Providerconf3 extends Activity {
 
 /* ================================================================================================== */
 	private void EnviaComandosESC() {
-		int cambio = ConsultaContentProvider("cambio");
-		if(cambio==1){
-			PuertoD1.close();
-			try {
-				ConfiguraPuertoSerial();
-			} catch (SecurityException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			 ContentValues values = new ContentValues();
-		        values.put(ContentProviderLabinal.CAMBIO,0);
-		        getContentResolver().update(
-		    			Uri.parse("content://com.nebula.labinal/puerto/1"),
-		    			values,null,null);
-			
-		}else {
+
 			/** comando lectura (3) incluye desde controles hasta analogicas*/
 			byte[] toSend = TablaComandos();
 			try {
@@ -229,7 +248,6 @@ public class Providerconf3 extends Activity {
 			} catch (IOException e) {
 					e.printStackTrace();
 			}
-		}
 	}
 	
 /* ================================================================================================== */
@@ -356,12 +374,6 @@ public class Providerconf3 extends Activity {
 				}
 				Log.i(" (RxInf) Respuesta Nivel Inferior",temp );
 				String palabraControl = temp.substring(2, 4);
-				// checamos por la configuracion de que es si es un 80 es un veris y si es un 81 seria un termo
-				Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
-				Cursor c = getContentResolver().query(Campos,null,null,null,null);
-				c.moveToFirst();
-				int TipoDispositivo =(c.getInt(c.getColumnIndex("idmensaje39")));
-				c.close();
 				int TipoRespuesta =0;
 				try{
 					TipoRespuesta = Integer.valueOf(palabraControl);
@@ -443,7 +455,7 @@ public class Providerconf3 extends Activity {
 
 			while(!isInterrupted()) {
 				if (LeeNivelSuperior == null){
-				}else{
+                }else{
 					byte[] temp1 = new byte[512];
 					try {
 						int size = LeeNivelSuperior.read(temp1);
@@ -470,8 +482,7 @@ public class Providerconf3 extends Activity {
 						}
 				
 					}catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+					    e1.printStackTrace();
 					}
 				}	
 			}
@@ -554,7 +565,7 @@ public class Providerconf3 extends Activity {
 /* ================================================================================================== */
 	private byte[] ComandosExploracion(){
 		byte[] comando= new byte[6];
-		String temporal = ConsultaContentProviderExploracion("cmdexp");
+		String temporal = CMDExploracion;
 		
 		Log.i(" (TxInf) Comando de Exploracion", temporal.substring(0, 4)+" "
 				           +temporal.substring(5, 9)+" "
@@ -577,24 +588,17 @@ public class Providerconf3 extends Activity {
 	private String Acomoda39Medidor(String Respuesta){
 		String ValorCampo = null;
 		String temp = Respuesta;
-		Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
-		Cursor c = getContentResolver().query(Campos,null,null,null,null);
-		c.moveToFirst();
-		
-		
-		// verificamos que la respuesta este completa
-		try {
-			String encabezado39 = String.valueOf(c.getString(c.getColumnIndex("idmensaje39")));
-			String Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
-			c.close();
-			ValorCampo= encabezado39+"26000"+ Direccion+"39"+temp.substring(6, 18)
+
+        // verificamos que la respuesta este completa
+       try {
+			ValorCampo= TipoDispositivo+"26000"+ Direccion+"39"+temp.substring(6, 18)
 					 .concat(temp.substring(22, 34))
 					 .concat(temp.substring(38,42))
 					 .concat(temp.substring(66,78))
 					 .concat(temp.substring(90,114));
 		} catch (StringIndexOutOfBoundsException e) {
 			ValorCampo = Acomoda99();
-		}
+	}
 		
 		
 		return ValorCampo ;
@@ -603,15 +607,7 @@ public class Providerconf3 extends Activity {
 /* ================================================================================================== */
 	private String Acomoda99(){
 		String ValorCampo = null;
-		Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
-		Cursor c = getContentResolver().query(Campos,null,null,null,null);
-		c.moveToFirst();
-		
-		String encabezado39 = String.valueOf(c.getString(c.getColumnIndex("idmensaje39")));
-		String Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
-		c.close();
-		
-		ValorCampo= encabezado39+"26000"+ Direccion+"99";
+		ValorCampo= TipoDispositivo+"26000"+ Direccion+"99";
 		return ValorCampo ;
 	}
 
@@ -619,18 +615,12 @@ public class Providerconf3 extends Activity {
 	private String Acomoda39Termos(String Respuesta){
 		String ValorCampo = null;
 		String temp = Respuesta;
-		Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
-		
-		Cursor c = getContentResolver().query(Campos,null,null,null,null);
-		c.moveToFirst();
-		
+
 		// verificamos que la respuesta este completa
 		try {
-			String encabezado39 = String.valueOf(c.getString(c.getColumnIndex("idmensaje39")));
-			String Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
-			c.close();
-			ValorCampo= encabezado39+"26000"+ Direccion+"39"+temp.substring(6,70);
+			ValorCampo= TipoDispositivo+"26000"+ Direccion+"39"+temp.substring(6,70);
 		} catch (StringIndexOutOfBoundsException e) {
+
 			ValorCampo = Acomoda99();
 		}
 		
@@ -641,72 +631,28 @@ public class Providerconf3 extends Activity {
 	private String Acomoda35(String Respuesta){
 		String ValorCampo = null;
 		String temp = Respuesta;
-		Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
-		
-		Cursor c = getContentResolver().query(Campos,null,null,null,null);
-		c.moveToFirst();
-		
-		String encabezado35 = String.valueOf(c.getString(c.getColumnIndex("idmensaje39")));
-		String Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
-		c.close();
-		
-		ValorCampo= encabezado35+"0E000"+ Direccion+"35"+temp;
+    	ValorCampo= TipoDispositivo+"0E000"+ Direccion+"35"+temp;
 		return ValorCampo ;
 	}
 
 /* ================================================================================================== */
 	private String Acomoda95(){
 		String ValorCampo = null;
-		Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
-		
-		Cursor c = getContentResolver().query(Campos,null,null,null,null);
-		c.moveToFirst();
-		
-		String encabezado35 = String.valueOf(c.getString(c.getColumnIndex("idmensaje39")));
-		String Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
-		c.close();
-		
-		ValorCampo= encabezado35+"0E000"+ Direccion+"95";
+		ValorCampo= TipoDispositivo+"0E000"+ Direccion+"95";
 		return ValorCampo ;
 	}
 
 /* ================================================================================================== */
 	private int ConsultaContentProviderSegundosEnvio39() {
-		int ValorCampo = 0;
-		Uri allTitles = Uri
-				.parse("content://com.nebula.labinal/timer/1");
-		Cursor c = getContentResolver()
-				.query(allTitles, null, null, null, null);
-		if(c.getCount() == 0){
-			ValorCampo = 0;
-			return ValorCampo;
-		}else{
-		c.moveToFirst();
-		ValorCampo = c.getInt(c.getColumnIndex("veltimer"));
-		c.close();
-		/** EL ERROR QUE MARCABA ANTES FUE A CAUSA DE NO CERRAR EL OBJETO CURSOR */
+		int ValorCampo = VelTimer;
 		return ValorCampo;
-		}
-	}
+    }
 	
 /* ================================================================================================== */
 	private String ConsultaContentProviderIP() {
-			String ValorCampo = null;
-			Uri allTitles = Uri
-					.parse("content://com.nebula.labinal/ip/1");
-			Cursor c = getContentResolver()
-					.query(allTitles, null, null, null, null);
-			if(c.getCount() == 0){
-				ValorCampo= "No hay nada en la tabla";
-				return ValorCampo;
-			}else{
-			c.moveToFirst();
-			ValorCampo = c.getString(c.getColumnIndex("ip")).toString();
-			c.close();
-			/** EL ERROR QUE MARCABA ANTES FUE A CAUSA DE NO CERRAR EL OBJETO CURSOR */
-			return ValorCampo;
-			}
-		}
+	    String ValorCampo = Ip;
+	    return ValorCampo;
+	}
 	
 	Uri uri;
 	int Rx = 1;
