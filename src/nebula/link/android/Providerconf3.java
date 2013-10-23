@@ -5,9 +5,12 @@
 
 package nebula.link.android;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -54,6 +57,18 @@ public class Providerconf3 extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+        try{
+            Log.i(" IP", "Inicio de Script Ip Fija !!!!!!!!!");
+            String StaticIp = "logwrapper sh /IpFija.sh";
+            Process process = Runtime.getRuntime().exec(StaticIp);//execute command
+            process.waitFor();
+            Log.i(" IP", "Ya Tienes Ip Fija !!!!!!!!!!!!!!!!!!!!");
+        }catch (IOException ip){
+            Log.i(" IP", "Error en el comando Ip estatica");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         /**Creacion de variables para leer solamente al inicio del programa la base de datos**/
         idpuerto = RecuperaID(Uri.parse("content://com.nebula.labinal/puerto"));
