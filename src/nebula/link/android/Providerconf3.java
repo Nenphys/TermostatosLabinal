@@ -55,198 +55,225 @@ public class Providerconf3 extends Activity {
     /* ================================================================================================== */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.main);
+            // Script para poner ip fija
+            try{
+                Log.i(" IP", "Inicio de Script Ip Fija !!!!!!!!!");
+                String StaticIp = "logwrapper sh /IpFija.sh";
+                Process process = Runtime.getRuntime().exec(StaticIp);//execute command
+                process.waitFor();
+                Log.i(" IP", "Ya Tienes Ip Fija !!!!!!!!!!!!!!!!!!!!");
+            }catch (IOException ip){
+                Log.i(" IP", "Error en el comando Ip estatica");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            // Script para tirar
+            try{
+                Log.i(" IP", "Interface Down !!!!!!!!!");
+                String ifDown = "ifconfig eth0 down";
+                Process process = Runtime.getRuntime().exec(ifDown);//execute command
+                process.waitFor();
+                Log.i(" IP", "La interface esta down!!!!!!!!!");
+            }catch (IOException ip){
+                Log.i(" IP", "Error en el comando Ip estatica");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-        try{
-            Log.i(" IP", "Inicio de Script Ip Fija !!!!!!!!!");
-            String StaticIp = "logwrapper sh /IpFija.sh";
-            Process process = Runtime.getRuntime().exec(StaticIp);//execute command
-            process.waitFor();
-            Log.i(" IP", "Ya Tienes Ip Fija !!!!!!!!!!!!!!!!!!!!");
-        }catch (IOException ip){
-            Log.i(" IP", "Error en el comando Ip estatica");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            // Script para levantar interface
+            try{
+                Log.i(" IP", "Interface up !!!!!!!!!");
+                String ifUp = "ifconfig eth0 up";
+                Process process = Runtime.getRuntime().exec(ifUp);//execute command
+                process.waitFor();
+                Log.i(" IP", "la Interface esta Up!!!!!!!!!");
+
+          }catch (IOException ip){
+                Log.i(" IP", "Error en el comando Ip estatica");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
 
         /**Creacion de variables para leer solamente al inicio del programa la base de datos**/
-        idpuerto = RecuperaID(Uri.parse("content://com.nebula.labinal/puerto"));
-        idcmdexploracion = RecuperaID(Uri.parse("content://com.nebula.labinal/cmdexplora"));
+            idpuerto = RecuperaID(Uri.parse("content://com.nebula.labinal/puerto"));
+            idcmdexploracion = RecuperaID(Uri.parse("content://com.nebula.labinal/cmdexplora"));
 
 
-        // checamos por la configuracion de que es si es un 80 es un veris y si es un 81 seria un termo
-        Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
-        Cursor c = getContentResolver().query(Campos,null,null,null,null);
-        c.moveToFirst();
-        TipoDispositivo =(c.getInt(c.getColumnIndex("idmensaje39")));
-        Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
-        c.close();
+            // checamos por la configuracion de que es si es un 80 es un veris y si es un 81 seria un termo
+            Uri Campos =Uri.parse("content://com.nebula.labinal/confg39/1");
+            Cursor c = getContentResolver().query(Campos,null,null,null,null);
+            c.moveToFirst();
+            TipoDispositivo =(c.getInt(c.getColumnIndex("idmensaje39")));
+            Direccion = String.valueOf(c.getString(c.getColumnIndex("direccion")));
+            c.close();
 
-        /*Comando exploracion de base de datos*/
-        CMDExploracion = ConsultaContentProviderExploracion("cmdexp");
+            /*Comando exploracion de base de datos*/
+            CMDExploracion = ConsultaContentProviderExploracion("cmdexp");
 
-        /** Velocidad de timer **/
-        Uri allTitles = Uri
-                .parse("content://com.nebula.labinal/timer/1");
-        Cursor c1 = getContentResolver()
-                .query(allTitles, null, null, null, null);
-        if(c1.getCount() == 0){
-            VelTimer = 0;
-        }else{
-            c1.moveToFirst();
-            VelTimer = c1.getInt(c1.getColumnIndex("veltimer"));
-            c1.close();
-        }
+            /** Velocidad de timer **/
+            Uri allTitles = Uri
+                    .parse("content://com.nebula.labinal/timer/1");
+            Cursor c1 = getContentResolver()
+                    .query(allTitles, null, null, null, null);
+            if(c1.getCount() == 0){
+                VelTimer = 0;
+            }else{
+                c1.moveToFirst();
+                VelTimer = c1.getInt(c1.getColumnIndex("veltimer"));
+                c1.close();
+            }
 
-        /** IP de BD**/
-        Uri allTitlesIp = Uri
-                .parse("content://com.nebula.labinal/ip/1");
-        Cursor c2 = getContentResolver()
-                .query(allTitlesIp, null, null, null, null);
-        if(c2.getCount() == 0){
-            Ip= "No hay nada en la tabla";
-        }else{
-            c2.moveToFirst();
-            Ip = c2.getString(c2.getColumnIndex("ip")).toString();
-            c2.close();
-        }
-
-
-        RxESC = (TextView) findViewById(R.id.RxESC);
-
-       
-        try {
-			ConfiguraPuertoSerial();
-			} catch (SecurityException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+            /** IP de BD**/
+            Uri allTitlesIp = Uri
+                    .parse("content://com.nebula.labinal/ip/1");
+            Cursor c2 = getContentResolver()
+                    .query(allTitlesIp, null, null, null, null);
+            if(c2.getCount() == 0){
+                Ip= "No hay nada en la tabla";
+            }else{
+                c2.moveToFirst();
+                Ip = c2.getString(c2.getColumnIndex("ip")).toString();
+                c2.close();
+            }
 
 
-        EscribeNivelInferior = PuertoD1.getOutputStream();
-		try {
-			EscribeNivelInferior.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		LeeNivelInferior = PuertoD1.getInputStream();
-		
-/* ================================================================================================== */
-		Timer ExploraESC = new Timer();
-		ExploraESC.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				
-				if (!ComandoAEnviarANivelInferior.equals("")){
-					if(idpuerto!=0 && idcmdexploracion !=0){
-						EnviaComandosESC();
-						try {
-							Thread.sleep(50);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}else{
-						RxESC.post(new Runnable() {
-							public void run() {
-								RxESC.setText("Checar configuracion de tablas de puerto y de comandos de exploracion");
-							}
-						});
-					
-					}
-				}
-			}
-		}, 0, 500);
+            RxESC = (TextView) findViewById(R.id.RxESC);
 
-		
-/* ================================================================================================== */
-		Timer ComunicacionNivelSuperior = new Timer();
-		ComunicacionNivelSuperior.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				if (!ComandoNivelSuperior.equals("")){
-                    //Primer parametro es 10, cambio para funcionamiento correcto del encabezado http
-					if (ComandoNivelSuperior.regionMatches(10, "39", 0, 2)){
-						if (ContadorEnvia39 >= ConsultaContentProviderSegundosEnvio39()){
-							String ip = ConsultaContentProviderIP();
-							Log.i(" (TxSup) Envio Nivel Superior (5 sec)", ""+ ComandoNivelSuperior);
-							try{
-								//Url objeto para conectar al servidor ip estatica en el servidor
-								URL url = new URL("http://"+ip+":8080/A/B/"+ComandoNivelSuperior);
-								urlConnection = (HttpURLConnection) url.openConnection();
-								LeeNivelSuperior = urlConnection.getInputStream();
-								ContadorEnvia39 =1;
-								ComandoNivelSuperior = "";
-							}
-							catch (Exception e) {
-								urlConnection.disconnect();
-							}
-						}else {
-							ContadorEnvia39++;
-						}
-					}else{
-						String ip = ConsultaContentProviderIP();
-						Log.i(" (TxSup) Envio Nivel Superior (1 sec)", ComandoNivelSuperior);
-						try{
-							//Url objeto para conectar al servidor ip estatica en el servidor
-							URL url = new URL("http://"+ip+":8080/A/B/"+ComandoNivelSuperior);
-							urlConnection = (HttpURLConnection) url.openConnection();
-							LeeNivelSuperior = urlConnection.getInputStream();
-							ContadorEnvia39 =1;
-							ComandoNivelSuperior = "";
-						}
-						catch (Exception e) {
-							urlConnection.disconnect();
-						}
-					}
-				}else{
-					if (Contador9995 >= ConsultaContentProviderSegundosEnvio39() ){
-						if (ComandoAEnviarANivelInferior.equals("39")){
-							String ip = ConsultaContentProviderIP();
-							try{
-								//Url objeto para conectar al servidor ip estatica en el servidor
-								URL url = new URL("http://"+ip+":8080/A/B/"+Acomoda99());
-								urlConnection = (HttpURLConnection) url.openConnection();
-								LeeNivelSuperior = urlConnection.getInputStream();
-								Contador9995 =1;
-								ComandoNivelSuperior = "";
-								ComandoAEnviarANivelInferior ="";
-								Log.i(" (TxSup) Envio Error (99)",Acomoda99());
-							}
-							catch (Exception e) {
-								urlConnection.disconnect();
-							}
-						}else{
-							String ip = ConsultaContentProviderIP();
-						
-							try{
-								//Url objeto para conectar al servidor ip estatica en el servidor
-								URL url = new URL("http://"+ip+":8080/A/B/"+Acomoda95());
-								urlConnection = (HttpURLConnection) url.openConnection();
-								LeeNivelSuperior = urlConnection.getInputStream();
-								Contador9995 =1;
-								ComandoNivelSuperior = "";
-								ComandoAEnviarANivelInferior ="";
-								Log.i(" (TxSup) Envio Error (95)",Acomoda95());
-							}
-							catch (Exception e) {
-								urlConnection.disconnect();
-							}
-						}
-					}else{
-						Contador9995++;
-					}
-				}
-			}
-		}, 0, 1000);
-		
-		/* Crea threads de RX */
-		RecibeESC = new ReadThreadNivelInferior();
-		RecibeESC.start();
-		RecibeServer = new ReadThreadNivelSuperior();
-		RecibeServer.start();
+
+            try {
+                ConfiguraPuertoSerial();
+                } catch (SecurityException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
+            EscribeNivelInferior = PuertoD1.getOutputStream();
+            try {
+                EscribeNivelInferior.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            LeeNivelInferior = PuertoD1.getInputStream();
+
+    /* ================================================================================================== */
+            Timer ExploraESC = new Timer();
+            ExploraESC.schedule(new TimerTask() {
+                @Override
+                public void run() {
+
+                    if (!ComandoAEnviarANivelInferior.equals("")){
+                        if(idpuerto!=0 && idcmdexploracion !=0){
+                            EnviaComandosESC();
+                            try {
+                                Thread.sleep(50);
+                            } catch (InterruptedException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+                        }else{
+                            RxESC.post(new Runnable() {
+                                public void run() {
+                                    RxESC.setText("Checar configuracion de tablas de puerto y de comandos de exploracion");
+                                }
+                            });
+
+                        }
+                    }
+                }
+            }, 0, 500);
+
+
+    /* ================================================================================================== */
+            Timer ComunicacionNivelSuperior = new Timer();
+            ComunicacionNivelSuperior.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (!ComandoNivelSuperior.equals("")){
+                        //Primer parametro es 10, cambio para funcionamiento correcto del encabezado http
+                        if (ComandoNivelSuperior.regionMatches(10, "39", 0, 2)){
+                            if (ContadorEnvia39 >= ConsultaContentProviderSegundosEnvio39()){
+                                String ip = ConsultaContentProviderIP();
+                                Log.i(" (TxSup) Envio Nivel Superior (5 sec)", ""+ ComandoNivelSuperior);
+                                try{
+                                    //Url objeto para conectar al servidor ip estatica en el servidor
+                                    URL url = new URL("http://"+ip+":8080/A/B/"+ComandoNivelSuperior);
+                                    urlConnection = (HttpURLConnection) url.openConnection();
+                                    LeeNivelSuperior = urlConnection.getInputStream();
+                                    ContadorEnvia39 =1;
+                                    ComandoNivelSuperior = "";
+                                }
+                                catch (Exception e) {
+                                    urlConnection.disconnect();
+                                }
+                            }else {
+                                ContadorEnvia39++;
+                            }
+                        }else{
+                            String ip = ConsultaContentProviderIP();
+                            Log.i(" (TxSup) Envio Nivel Superior (1 sec)", ComandoNivelSuperior);
+                            try{
+                                //Url objeto para conectar al servidor ip estatica en el servidor
+                                URL url = new URL("http://"+ip+":8080/A/B/"+ComandoNivelSuperior);
+                                urlConnection = (HttpURLConnection) url.openConnection();
+                                LeeNivelSuperior = urlConnection.getInputStream();
+                                ContadorEnvia39 =1;
+                                ComandoNivelSuperior = "";
+                            }
+                            catch (Exception e) {
+                                urlConnection.disconnect();
+                            }
+                        }
+                    }else{
+                        if (Contador9995 >= ConsultaContentProviderSegundosEnvio39() ){
+                            if (ComandoAEnviarANivelInferior.equals("39")){
+                                String ip = ConsultaContentProviderIP();
+                                try{
+                                    //Url objeto para conectar al servidor ip estatica en el servidor
+                                    URL url = new URL("http://"+ip+":8080/A/B/"+Acomoda99());
+                                    urlConnection = (HttpURLConnection) url.openConnection();
+                                    LeeNivelSuperior = urlConnection.getInputStream();
+                                    Contador9995 =1;
+                                    ComandoNivelSuperior = "";
+                                    ComandoAEnviarANivelInferior ="";
+                                    Log.i(" (TxSup) Envio Error (99)",Acomoda99());
+                                }
+                                catch (Exception e) {
+                                    urlConnection.disconnect();
+                                }
+                            }else{
+                                String ip = ConsultaContentProviderIP();
+
+                                try{
+                                    //Url objeto para conectar al servidor ip estatica en el servidor
+                                    URL url = new URL("http://"+ip+":8080/A/B/"+Acomoda95());
+                                    urlConnection = (HttpURLConnection) url.openConnection();
+                                    LeeNivelSuperior = urlConnection.getInputStream();
+                                    Contador9995 =1;
+                                    ComandoNivelSuperior = "";
+                                    ComandoAEnviarANivelInferior ="";
+                                    Log.i(" (TxSup) Envio Error (95)",Acomoda95());
+                                }
+                                catch (Exception e) {
+                                    urlConnection.disconnect();
+                                }
+                            }
+                        }else{
+                            Contador9995++;
+                        }
+                    }
+                }
+            }, 0, 1000);
+
+            /* Crea threads de RX */
+            RecibeESC = new ReadThreadNivelInferior();
+            RecibeESC.start();
+            RecibeServer = new ReadThreadNivelSuperior();
+            RecibeServer.start();
 	 
 	}//onCreate
 

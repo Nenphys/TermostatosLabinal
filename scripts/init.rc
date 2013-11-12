@@ -557,7 +557,7 @@ service ssh-key-dsa /system/xbin/dropbearkey -t dss -f /data/dropbear/dropbear_d
 
 service ntpclient /system/bin/ntpclient -h pool.ntp.org -i 600 -s -l
 
-service dhcpcd_eth0 /system/bin/dhcpcd -BKL -d eth0 -dd
+service dhcpcd_eth0 /system/bin/dhcpcd -d eth0 -dd
     group system dhcp
     disabled
     oneshot
