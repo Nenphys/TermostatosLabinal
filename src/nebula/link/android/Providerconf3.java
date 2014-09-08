@@ -58,6 +58,47 @@ public class Providerconf3 extends Activity {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.main);
 
+
+        // Script para poner ip fija
+        try{
+            Log.i(" IP", "Inicio de Script Ip Fija !!!!!!!!!");
+            String StaticIp = "logwrapper sh /IpFija.sh";
+            Process process = Runtime.getRuntime().exec(StaticIp);//execute command
+            process.waitFor();
+            Log.i(" IP", "Ya Tienes Ip Fija !!!!!!!!!!!!!!!!!!!!");
+        }catch (IOException ip){
+            Log.i(" IP", "Error en el comando Ip estatica");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        // Script para tirar
+        try{
+            Log.i(" IP", "Interface Down !!!!!!!!!");
+            String ifDown = "ifconfig eth0 down";
+            Process process = Runtime.getRuntime().exec(ifDown);//execute command
+            process.waitFor();
+            Log.i(" IP", "La interface esta down!!!!!!!!!");
+        }catch (IOException ip){
+            Log.i(" IP", "Error en el comando Ip estatica");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Script para levantar interface
+        try{
+            Log.i(" IP", "Interface up !!!!!!!!!");
+            String ifUp = "ifconfig eth0 up";
+            Process process = Runtime.getRuntime().exec(ifUp);//execute command
+            process.waitFor();
+            Log.i(" IP", "la Interface esta Up!!!!!!!!!");
+
+        }catch (IOException ip){
+            Log.i(" IP", "Error en el comando Ip estatica");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
         /**Creacion de variables para leer solamente al inicio del programa la base de datos**/
             idpuerto = RecuperaID(Uri.parse("content://com.nebula.labinal/puerto"));
             idcmdexploracion = RecuperaID(Uri.parse("content://com.nebula.labinal/cmdexplora"));
